@@ -5,6 +5,7 @@ from database.dao import DAO
 class Model:
     def __init__(self):
         self.G = nx.Graph()
+        self.dict_rifugi={}
 
     def build_graph(self, year: int):
         """
@@ -13,14 +14,28 @@ class Model:
         Quindi il grafo avrà solo i nodi che appartengono almeno ad una connessione, non tutti quelli disponibili.
         :param year: anno limite fino al quale selezionare le connessioni da includere.
         """
-        # TODO
+        rifugi=DAO.readRifugi()
+        for r in rifugi:
+            self.dict_rifugi[r.id]=r
+
+        archi_anno=DAO.read_connessioni_per_anno(year)
+
+        for (u_nodo_id,v_nodo_id) in archi_anno:
+            if u_nodo_id in self.dict_rifugi and v_nodo_id in self.dict_rifugi:
+                u_nodo=self.dict_rifugi[u_nodo_id]
+                v_nodo=self.dict_rifugi[v_nodo_id]
+                self.G.add_edge(u_nodo,v_nodo)
+
 
     def get_nodes(self):
         """
         Restituisce la lista dei rifugi presenti nel grafo.
         :return: lista dei rifugi presenti nel grafo.
         """
-        # TODO
+        lista_nodi=[]
+        for nodo in self.G.nodes:
+            lista_nodi.append(nodo)
+        return lista_nodi
 
     def get_num_neighbors(self, node):
         """
@@ -28,14 +43,14 @@ class Model:
         :param node: un rifugio (cioè un nodo del grafo)
         :return: numero di vicini diretti del nodo indicato
         """
-        # TODO
+        return self.G.degree(node)
 
     def get_num_connected_components(self):
         """
         Restituisce il numero di componenti connesse del grafo.
         :return: numero di componenti connesse
         """
-        # TODO
+        return nx.number_connected_components(self.G)
 
     def get_reachable(self, start):
         """
@@ -53,5 +68,19 @@ class Model:
 
         return a
         """
+        albero=nx.bfs_tree(self.G, start)
+        nodi=list(albero.nodes)
+        nodi.remove(start)
 
-        # TODO
+        visitati=[]
+        self.dfs(start,visitati)
+        visitati.remove(start)
+        return visitati
+
+
+    def dfs(self,start,visitati):
+        visitati.append(start)
+        for vicino in self.G.neighbors(start):
+            if vicino not in visitati:
+                self.dfs(vicino,visitati)
+
